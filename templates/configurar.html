@@ -76,6 +76,14 @@
 <div class="config-container">
     <h1 class="text-center mb-4">Configurar Gabarito e Disciplinas</h1>
     
+    <!-- Nova seção para entrada rápida do gabarito -->
+    <div class="mb-4">
+        <label for="gabaritoRapido" class="form-label">Preencher Gabarito Rápido</label>
+        <input type="text" id="gabaritoRapido" class="form-control" placeholder="Exemplo: A, B, A, D, E, ..." />
+        <button type="button" class="btn btn-outline-primary mt-2" onclick="preencherGabarito()">Preencher Gabarito</button>
+        <small class="text-muted">Digite as respostas separadas por vírgulas e clique em "Preencher Gabarito".</small>
+    </div>
+    
     <form method="POST" action="{{ url_for('configurar') }}" id="configForm">
         <!-- Seção do Gabarito -->
         <div class="config-section">
@@ -108,7 +116,17 @@
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label for="disciplina_1" class="form-label">Nome da Disciplina</label>
-                        <input type="text" class="form-control" name="disciplina_1" id="disciplina_1" required>
+                        <select class="form-select" name="disciplina_1" id="disciplina_1" required>
+                            <option value="" selected disabled>Selecione</option>
+                            <option value="Matemática">Matemática</option>
+                            <option value="Português">Português</option>
+                            <option value="História">História</option>
+                            <option value="Geografia">Geografia</option>
+                            <option value="Física">Física</option>
+                            <option value="Química">Química</option>
+                            <option value="Biologia">Biologia</option>
+                            <option value="Inglês">Inglês</option>
+                        </select>
                     </div>
                     <div class="col-md-6">
                         <label for="questoes_1" class="form-label">Questões</label>
@@ -157,12 +175,21 @@ function adicionarDisciplina() {
     const novaDisciplina = document.createElement('div');
     novaDisciplina.className = 'row mb-3 align-items-end';
     novaDisciplina.innerHTML = `
-        <div class="col-md-5">
+        <div class="col-md-6">
             <label for="disciplina_${contadorDisciplinas}" class="form-label">Nome da Disciplina</label>
-            <input type="text" class="form-control" name="disciplina_${contadorDisciplinas}" 
-                   id="disciplina_${contadorDisciplinas}" required>
+            <select class="form-select" name="disciplina_${contadorDisciplinas}" id="disciplina_${contadorDisciplinas}" required>
+                <option value="" selected disabled>Selecione</option>
+                <option value="Matemática">Matemática</option>
+                <option value="Português">Português</option>
+                <option value="História">História</option>
+                <option value="Geografia">Geografia</option>
+                <option value="Física">Física</option>
+                <option value="Química">Química</option>
+                <option value="Biologia">Biologia</option>
+                <option value="Inglês">Inglês</option>
+            </select>
         </div>
-        <div class="col-md-5">
+        <div class="col-md-6">
             <label for="questoes_${contadorDisciplinas}" class="form-label">Questões</label>
             <input type="text" class="form-control" name="questoes_${contadorDisciplinas}" 
                    id="questoes_${contadorDisciplinas}" required placeholder="Ex: 1-10 ou 1,2,3,4,5">
@@ -235,5 +262,32 @@ document.getElementById('configForm').addEventListener('submit', function(e) {
     // Se passou por todas as validações, enviar o formulário
     this.submit();
 });
+
+// Função para preencher o gabarito rapidamente
+function preencherGabarito() {
+    const input = document.getElementById('gabaritoRapido').value.trim();
+    const respostas = input.split(',').map(r => r.trim().toUpperCase());
+    
+    // Verificar se todas as respostas são válidas
+    const respostasInvalidas = respostas.filter(r => !['A', 'B', 'C', 'D', 'E'].includes(r));
+    if (respostasInvalidas.length > 0) {
+        alert(`Respostas inválidas detectadas: ${respostasInvalidas.join(', ')}. Use apenas A, B, C, D ou E.`);
+        return;
+    }
+    
+    // Verificar se há exatamente 60 respostas
+    if (respostas.length !== 60) {
+        alert('Por favor, insira exatamente 60 respostas separadas por vírgulas.');
+        return;
+    }
+    
+    // Preencher as dropdowns
+    respostas.forEach((resposta, index) => {
+        const select = document.getElementById(`questao_${index + 1}`);
+        if (select) {
+            select.value = resposta;
+        }
+    });
+}
 </script>
-{% endblock %} 
+{% endblock %}

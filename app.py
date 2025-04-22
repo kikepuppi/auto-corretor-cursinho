@@ -34,16 +34,21 @@ resultados = []
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', logo1='logo.png', logo2='cursinho_logo.png')
 
 @app.route('/configurar', methods=['GET', 'POST'])
 def configurar():
+
     if request.method == 'POST':
+
         # Processar gabarito
         gabarito = {}
         for i in range(1, 61):
             resposta = request.form.get(f'questao_{i}')
             if resposta:
+                if resposta not in ['A', 'B', 'C', 'D', 'E']:
+                    flash(f'Resposta inválida na questão {i}. Use apenas A, B, C, D ou E.', 'error')
+                    return redirect(request.url)
                 gabarito[i] = resposta
         
         # Processar disciplinas
@@ -61,10 +66,18 @@ def configurar():
             for parte in questoes.split(','):
                 parte = parte.strip()
                 if '-' in parte:
-                    inicio, fim = map(int, parte.split('-'))
-                    questoes_lista.extend(range(inicio, fim + 1))
+                    try:
+                        inicio, fim = map(int, parte.split('-'))
+                        questoes_lista.extend(range(inicio, fim + 1))
+                    except ValueError:
+                        flash(f'Formato inválido em "{parte}". Use números ou intervalos como "1-10".', 'error')
+                        return redirect(request.url)
                 else:
-                    questoes_lista.append(int(parte))
+                    try:
+                        questoes_lista.append(int(parte))
+                    except ValueError:
+                        flash(f'Formato inválido em "{parte}". Use números ou intervalos como "1-10".', 'error')
+                        return redirect(request.url)
             
             disciplinas[disciplina] = sorted(questoes_lista)
             i += 1
@@ -81,11 +94,21 @@ def configurar():
         # Verificar se todas as questões foram atribuídas a alguma disciplina
         todas_questoes = set(range(1, 61))
         questoes_atribuidas = set()
+        questoes_repetidas = set()
         for questoes in disciplinas.values():
-            questoes_atribuidas.update(questoes)
+            for questao in questoes:
+                if questao in questoes_atribuidas:
+                    questoes_repetidas.add(questao)
+                questoes_atribuidas.add(questao)
         
-        if todas_questoes != questoes_atribuidas:
-            flash('Todas as questões devem ser atribuídas a uma disciplina.', 'error')
+        questoes_faltando = todas_questoes - questoes_atribuidas
+
+        if questoes_faltando:
+            flash(f'Questões faltando: {sorted(questoes_faltando)}', 'error')
+        if questoes_repetidas:
+            flash(f'Questões repetidas: {sorted(questoes_repetidas)}', 'error')
+        
+        if questoes_faltando or questoes_repetidas:
             return redirect(request.url)
         
         # Salvar configurações na sessão
@@ -95,7 +118,7 @@ def configurar():
         flash('Configurações salvas com sucesso!', 'success')
         return redirect(url_for('upload'))
     
-    return render_template('configurar.html')
+    return render_template('configurar.html', logo1='logo.png', logo2='cursinho_logo.png')
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
@@ -141,7 +164,7 @@ def upload():
             flash('Nenhuma prova foi processada.', 'error')
             return redirect(request.url)
     
-    return render_template('upload.html')
+    return render_template('upload.html', logo1='logo.png', logo2='cursinho_logo.png')
 
 @app.route('/dashboard')
 def dashboard():
@@ -176,7 +199,9 @@ def dashboard():
                          resultados=resultados,
                          disciplinas=disciplinas,
                          medias_disciplinas=medias_disciplinas,
-                         distribuicao_notas=distribuicao_notas)
+                         distribuicao_notas=distribuicao_notas,
+                         logo1='logo.png',
+                         logo2='cursinho_logo.png')
 
 @app.route('/gerar-relatorio')
 def gerar_relatorio():
@@ -309,7 +334,7 @@ def processar_prova(arquivo, gabarito, disciplinas):
     
     # Comparar as respostas com o gabarito
     resultados_comparacao = compare_resp(respostas, gabarito)
-    
+
     # Calcula acertos por disciplina
     acertos_disciplina = {}
     for disciplina, questoes in disciplinas.items():
@@ -342,4 +367,4 @@ def processar_prova(arquivo, gabarito, disciplinas):
     }
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=True)

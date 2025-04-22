@@ -58,15 +58,19 @@ function verificarQuestoesAtribuidas(disciplinas) {
     for (let i = 1; i <= 60; i++) {
         todasQuestoes.add(i);
     }
-    
+
     const questoesAtribuidas = new Set();
     for (const questoes of Object.values(disciplinas)) {
-        for (const questao of questoes) {
-            questoesAtribuidas.add(questao);
-        }
+        const parsedQuestoes = parseQuestoes(questoes);
+        parsedQuestoes.forEach(q => questoesAtribuidas.add(q));
     }
-    
-    return todasQuestoes.size === questoesAtribuidas.size;
+
+    const questoesFaltando = Array.from(todasQuestoes).filter(q => !questoesAtribuidas.has(q));
+    if (questoesFaltando.length > 0) {
+        return false;
+    }
+
+    return true;
 }
 
 // Exporta funções para uso em outros arquivos
@@ -76,4 +80,4 @@ window.utils = {
     validarFormatoQuestoes,
     parseQuestoes,
     verificarQuestoesAtribuidas
-}; 
+};
