@@ -123,27 +123,39 @@ def configurar():
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':
-        if 'gabarito' not in session or 'disciplinas' not in session:
-            flash('Por favor, configure o gabarito e as disciplinas primeiro.', 'warning')
-            return redirect(url_for('configurar'))
-        
-        if 'provas' not in request.files:
-            flash('Nenhum arquivo selecionado.', 'error')
+        if 'upload' in request.form:  # Verifica se o botão de upload foi clicado
+            if 'provas' not in request.files:
+                flash('Nenhum arquivo selecionado.', 'error')
+                return redirect(request.url)
+            
+            files = request.files.getlist('provas')
+            if not files or files[0].filename == '':
+                flash('Nenhum arquivo selecionado.', 'error')
+                return redirect(request.url)
+            
+            for file in files:
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(filepath)
+                    flash(f'Arquivo {filename} enviado com sucesso!', 'success')
+                else:
+                    flash(f'Arquivo {file.filename} não é permitido.', 'error')
             return redirect(request.url)
         
-        files = request.files.getlist('provas')
-        if not files or files[0].filename == '':
-            flash('Nenhum arquivo selecionado.', 'error')
-            return redirect(request.url)
-        
-        resultados = []
-        for file in files:
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
+        elif 'processar' in request.form:  # Verifica se o botão de processamento foi clicado
+            if 'gabarito' not in session or 'disciplinas' not in session:
+                flash('Por favor, configure o gabarito e as disciplinas primeiro.', 'warning')
+                return redirect(url_for('configurar'))
+            
+            arquivos = os.listdir(app.config['UPLOAD_FOLDER'])
+            if not arquivos:
+                flash('Nenhum arquivo para processar. Faça o upload primeiro.', 'error')
+                return redirect(request.url)
+            
+            resultados = []
+            for filename in arquivos:
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(filepath)
-                
-                # Extrair nome do aluno do nome do arquivo
                 nome_aluno = os.path.splitext(filename)[0]
                 
                 # Processar prova
@@ -153,16 +165,14 @@ def upload():
                 
                 # Remover arquivo após processamento
                 os.remove(filepath)
+            
+            if resultados:
+                session['resultados'] = resultados
+                flash(f'{len(resultados)} provas processadas com sucesso!', 'success')
+                return redirect(url_for('dashboard'))
             else:
-                flash(f'Arquivo {file.filename} não é permitido.', 'error')
-        
-        if resultados:
-            session['resultados'] = resultados
-            flash(f'{len(resultados)} provas processadas com sucesso!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Nenhuma prova foi processada.', 'error')
-            return redirect(request.url)
+                flash('Nenhuma prova foi processada.', 'error')
+                return redirect(request.url)
     
     return render_template('upload.html', logo1='logo.png', logo2='cursinho_logo.png')
 
@@ -286,6 +296,38 @@ def gerar_relatorio():
 def check_config():
     configured = 'gabarito' in session and 'disciplinas' in session
     return jsonify({'configured': configured})
+
+@app.route('/processar', methods=['POST'])
+def processar():
+    if 'gabarito' not in session or 'disciplinas' not in session:
+        flash('Por favor, configure o gabarito e as disciplinas primeiro.', 'warning')
+        return redirect(url_for('configurar'))
+    
+    arquivos = os.listdir(app.config['UPLOAD_FOLDER'])
+    if not arquivos:
+        flash('Nenhum arquivo para processar. Faça o upload primeiro.', 'error')
+        return redirect(url_for('upload'))
+    
+    resultados = []
+    for filename in arquivos:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        nome_aluno = os.path.splitext(filename)[0]
+        
+        # Processar prova
+        resultado = processar_prova(filepath, session['gabarito'], session['disciplinas'])
+        resultado['nome_aluno'] = nome_aluno
+        resultados.append(resultado)
+        
+        # Remover arquivo após processamento
+        os.remove(filepath)
+    
+    if resultados:
+        session['resultados'] = resultados
+        flash(f'{len(resultados)} provas processadas com sucesso!', 'success')
+        return redirect(url_for('dashboard'))
+    else:
+        flash('Nenhuma prova foi processada.', 'error')
+        return redirect(url_for('upload'))
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

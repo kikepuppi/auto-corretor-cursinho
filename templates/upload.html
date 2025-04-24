@@ -113,8 +113,19 @@
                 <div class="selected-files" id="selectedFiles"></div>
                 
                 <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary" id="submitButton" disabled>
-                        <i class="fas fa-upload"></i> Processar Provas
+                    <button type="submit" class="btn btn-primary" id="uploadButton" name="upload">
+                        <i class="fas fa-upload"></i> Fazer Upload
+                    </button>
+                </div>
+            </form>
+
+            <hr>
+
+            <h2 class="card-title text-center mb-4">Processar Provas</h2>
+            <form method="POST" action="{{ url_for('processar') }}">
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary" id="processButton" name="processar">
+                        <i class="fas fa-cogs"></i> Processar Provas
                     </button>
                 </div>
             </form>
@@ -136,7 +147,7 @@
 <script>
 const fileInput = document.getElementById('provas');
 const selectedFiles = document.getElementById('selectedFiles');
-const submitButton = document.getElementById('submitButton');
+const uploadButton = document.getElementById('uploadButton');
 const form = document.getElementById('uploadForm');
 
 // Atualiza a lista de arquivos selecionados
@@ -145,7 +156,7 @@ function updateSelectedFiles() {
     const files = fileInput.files;
     
     if (files.length > 0) {
-        submitButton.disabled = false;
+        uploadButton.disabled = false;
         
         Array.from(files).forEach((file, index) => {
             const fileElement = document.createElement('div');
@@ -157,7 +168,7 @@ function updateSelectedFiles() {
             selectedFiles.appendChild(fileElement);
         });
     } else {
-        submitButton.disabled = true;
+        uploadButton.disabled = true;
     }
 }
 
@@ -244,4 +255,4 @@ function handleDrop(e) {
 }
 </script>
 {% endblock %}
-{% endblock %} 
+{% endblock %}
