@@ -27,7 +27,7 @@ def processar_imagem(imagem_path, output_dir="temp"):
     
     # Limpar pasta temp
     if os.path.exists(output_dir):
-        shutil.rmtree(output_dir, onerror=remove_readonly)
+        shutil.rmtree(output_dir)
         
     return respostas
 
@@ -68,13 +68,11 @@ def main():
         print(f"\n🔄 Processando prova {i}")
         respostas = processar_imagem(imagem_path)
         
-        if respostas:
+        for i in range(len(respostas)):
             # Converter respostas para o formato do DataFrame
             prova_dict = {f"Q{i:02d}": respostas[i] for i in range(1, 61)}
             df.loc[f"Prova_{i}"] = prova_dict
             print(f"✅ Prova {i} processada com sucesso!")
-        else:
-            print(f"❌ Erro ao processar prova {i}")
     
     # 5. Salvar resultados
     if not df.empty:
