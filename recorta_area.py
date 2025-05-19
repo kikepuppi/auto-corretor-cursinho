@@ -1,11 +1,11 @@
 import cv2
 
-image_path = "image.jpg"  # pode ser a imagem já redimensionada, se quiser
+image_path = "imagens_gabaritos/gabarito_p1.jpg"  # pode ser a imagem já redimensionada, se quiser
 image = cv2.imread(image_path)
 #image_resized = cv2.resize(image, (2480, 3508))  # ajuste se necessário
 
 scale = 0.2 # ou 0.4 dependendo do tamanho da imagem
-image_resized = cv2.resize(image, None, fx=scale, fy=scale)
+image_resized = cv2.resize(image, None, (2480, 3508))
 
 pontos = []
 drawing = False

@@ -1,7 +1,7 @@
-import cv2
-import numpy as np
-import os
-import time
+# import cv2
+# import numpy as np
+# import os
+# import time
 
 
 # output_dir = "temp"
@@ -9,10 +9,10 @@ import time
 
 # # Coordenadas aproximadas das bolinhas dentro da imagem da questão
 # # Você pode ajustar esses valores testando
-posicoes_bolinhas_x = [62, 85, 109, 133, 159]  
-raio_bolinha = 15  # Raio da bolinha pra pegar o preenchido
+# posicoes_bolinhas_x = [62, 85, 109, 133, 159]  
+# raio_bolinha = 15  # Raio da bolinha pra pegar o preenchido
 
-alternativas = ["A", "B", "C", "D", "E"]
+# alternativas = ["A", "B", "C", "D", "E"]
 
 
 # #vai de 1 até o numero de paginas do pdf
@@ -48,71 +48,71 @@ alternativas = ["A", "B", "C", "D", "E"]
 # # Mostrar respostas detectadas
 # for numero, letra in respostas.items():
 #     print(f"Questão {numero:02d} → Resposta marcada: {letra}")
+ 
 
+import cv2
+import numpy as np
+import os
 
+import cv2
+import numpy as np
+import os
 
 def detectar_respostas(output_dir="temp"):
     print(f"\n🔍 Iniciando detecção de respostas em {output_dir}")
     respostas = {}
-    
-    # Verificar se a pasta existe
+    alternativas = ["A", "B", "C", "D", "E"]
+
     if not os.path.exists(output_dir):
         print(f"❌ ERRO: Pasta {output_dir} não encontrada!")
         return respostas
-    
-    # Listar arquivos na pasta
-    arquivos = os.listdir(output_dir)
-    print(f"📁 Arquivos encontrados: {len(arquivos)}")
-    time.sleep(1)
-    
+
     for i in range(1, 61):
         caminho = os.path.join(output_dir, f"questao_{i:02d}.jpg")
-        print(f"\n📄 Processando questão {i:02d}")
-        
         if not os.path.exists(caminho):
-            print(f"❌ Arquivo não encontrado: {caminho}")
             respostas[i] = ""
             continue
-            
+
         imagem = cv2.imread(caminho)
         if imagem is None:
-            print(f"❌ Não foi possível ler a imagem: {caminho}")
             respostas[i] = ""
             continue
-            
-        print(f"✅ Imagem lida: {imagem.shape}")
-        time.sleep(0.5)
 
-        # Converter para escala de cinza e aplicar threshold
-        print("🎨 Aplicando processamento de imagem...")
+        # Pré-processamento
         gray = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
-        _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
-        time.sleep(0.5)
+        blur = cv2.GaussianBlur(gray, (5, 5), 0)
+        _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
-        # Analisar cada alternativa
-        print("🔍 Analisando alternativas...")
-        preenchimentos = []
-        for x in posicoes_bolinhas_x:
-            recorte = thresh[:, x-raio_bolinha:x+raio_bolinha]
-            preenchido = cv2.countNonZero(recorte)
-            preenchimentos.append(preenchido)
-            print(f"  Alternativa {alternativas[len(preenchimentos)-1]}: {preenchido} pixels")
-            time.sleep(0.2)
+        # Encontrar contornos
+        contornos, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # Verificar qualidade da detecção
-        max_pixels = max(preenchimentos)
-        min_pixels = min(preenchimentos)
-        diferenca = max_pixels - min_pixels
-        
-        if diferenca < 50:  # Se a diferença for muito pequena
-            print(f"⚠️ AVISO: Diferença muito pequena entre alternativas ({diferenca} pixels)")
-            print("  Isso pode indicar problemas na máscara ou na detecção")
-        
-        # Detectar resposta
-        idx_maior = np.argmax(preenchimentos)
-        resposta = alternativas[idx_maior]
+        bolinhas = []
+        for c in contornos:
+            (x, y, w, h) = cv2.boundingRect(c)
+            area = cv2.contourArea(c)
+            ar = w / float(h)
+
+            # Critérios para considerar como bolinha marcada
+            if 40 < w < 60 and 40 < h < 60 and 0.8 < ar < 1.2 and 1000 < area < 3000:
+                # Verifica se a bolinha está dentro da região de interesse
+                mask = np.zeros(thresh.shape, dtype="uint8")
+                cv2.drawContours(mask, [c], -1, 255, -1)
+                total = cv2.countNonZero(cv2.bitwise_and(thresh, thresh, mask=mask))
+                bolinhas.append((x, total))
+
+        # Validar quantidade de bolinhas detectadas
+        if not bolinhas or len(bolinhas) < 5:
+            print(f"❌ Questão {i:02d}: bolinhas insuficientes detectadas")
+            respostas[i] = ""
+            continue
+
+        # Ordenar por posição horizontal e selecionar a mais preenchida
+        bolinhas = sorted(bolinhas, key=lambda x: x[0])
+        idx_maior = np.argmax([b[1] for b in bolinhas])
+        resposta = alternativas[idx_maior] if idx_maior < len(alternativas) else ""
         respostas[i] = resposta
-        print(f"✅ Resposta detectada: {resposta}")
-        time.sleep(0.5)
+        print(f"✅ Questão {i:02d} → {resposta}")
 
     return respostas
+
+

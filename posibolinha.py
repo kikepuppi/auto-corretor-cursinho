@@ -1,7 +1,7 @@
 import cv2
 
 output_dir = "temp"
-numero_questao = 1  # Muda o número da questão que quer ver
+numero_questao = 2  # Muda o número da questão que quer ver
 
 caminho = f"{output_dir}/questao_{numero_questao:02d}.jpg"
 imagem = cv2.imread(caminho)

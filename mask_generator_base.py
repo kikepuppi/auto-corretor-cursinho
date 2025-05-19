@@ -103,18 +103,18 @@ def gerar_masks(image_path, output_dir="temp"):
     print(f"✅ Imagem carregada: {image.shape}. Imagem = {image_path}")
     
     scale = 0.3
-    image_resized = cv2.resize(image, None, fx=scale, fy=scale)
+    image_resized = cv2.resize(image, None, (2480, 3508), fx=scale, fy=scale)
+    #image_resized = cv2.resize(image, None, fx=scale, fy=scale)
     #print(f"✅ Imagem redimensionada: {image_resized.shape}")
-    time.sleep(1)
 
     # Recorte fixo da área de questões
     #print("✂️ Recortando área de questões...")
     y1, y2 = 435, 990
     x1, x2 = 40, 710
     bloco = image_resized[y1:y2, x1:x2]
-    cv2.imshow("Bloco recortado", bloco)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    #cv2.imshow("Bloco recortado", bloco)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
 
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
