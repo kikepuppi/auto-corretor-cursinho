@@ -112,15 +112,12 @@ def dividir_blocos_do_gabarito(imagem_path, output_dir="temp"):
     x, y, w, h = alvo_contorno
     bloco = original[y:y+h, x:x+w]
 
-    # Mostrar visualização do recorte detectado para confirmação
-    bloco_redimensionado = cv2.resize(bloco, (800, int(800 * bloco.shape[0] / bloco.shape[1])))
-    cv2.imshow("Bloco Detectado", bloco_redimensionado)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # Salvar o bloco original para debug (opcional)
+    cv2.imwrite(os.path.join(output_dir, "bloco_detectado.jpg"), bloco)
 
     # Limpar e recriar pasta de saída
     if os.path.exists(output_dir):
-        shutil.rmtree(output_dir, onexc=lambda func, path, excinfo: os.chmod(path, stat.S_IWRITE))
+        shutil.rmtree(output_dir, onerror=lambda func, path, _: os.chmod(path, stat.S_IWRITE))
     os.makedirs(output_dir)
 
     # Dividir em 15 linhas e 4 colunas (60 questões no total)
@@ -128,7 +125,7 @@ def dividir_blocos_do_gabarito(imagem_path, output_dir="temp"):
     altura = bloco.shape[0] // n_linhas
     largura = bloco.shape[1] // n_colunas
 
-    # Atenção: iterar por coluna antes da linha para manter ordem correta ENEM-style
+    # Verificação visual e de proporção para cada recorte de questão
     count = 1
     for coluna in range(n_colunas):
         for linha in range(n_linhas):
@@ -138,8 +135,20 @@ def dividir_blocos_do_gabarito(imagem_path, output_dir="temp"):
             x2 = (coluna + 1) * largura
 
             recorte = bloco[y1:y2, x1:x2]
+
+            # Verificação de formato e proporção
+            recorte_h, recorte_w = recorte.shape[:2]
+            proporcao = recorte_w / recorte_h if recorte_h != 0 else 0
+            if not (1.5 < proporcao < 5.0):
+                print(f"⚠️ Questão {count:02d} com proporção incomum: {proporcao:.2f} (W={recorte_w}, H={recorte_h})")
+
+            # Salvar recorte individual
+            recorte_gray = cv2.cvtColor(recorte, cv2.COLOR_BGR2GRAY)
+
+            _, recorte_thresh = cv2.threshold(recorte_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
             caminho = os.path.join(output_dir, f"questao_{count:02d}.jpg")
-            cv2.imwrite(caminho, recorte)
+            cv2.imwrite(caminho, recorte_thresh)
             count += 1
 
     print(f"✅ {count-1} recortes salvos em '{output_dir}' com sucesso!")
@@ -147,4 +156,4 @@ def dividir_blocos_do_gabarito(imagem_path, output_dir="temp"):
 
 # Exemplo de uso:
 if __name__ == "__main__":
-    dividir_blocos_do_gabarito("imagens_gabaritos/imagens1_p17.jpg")
+    dividir_blocos_do_gabarito("imagens_gabaritos/imagens1_p24.jpg")
